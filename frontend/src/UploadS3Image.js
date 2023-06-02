@@ -2,16 +2,17 @@ import React, {useState, useEffect} from 'react';
 import AWS, {config} from 'aws-sdk';
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';
-import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
 
 config.update({
-    accessKeyId: process.env.ACCESS_KEY_ID,
-    secretAccessKey: process.env.SECRET_ACCESS_KEY,
+    accessKeyId: 'AKIAW2RXDVGG34XBTXHA',
+    secretAccessKey: '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',
 });
 
 const theBucket = new AWS.S3({
-    params: {Bucket: process.env.S3_BUCKET},
-    region: process.env.REGION,
+    params: { Bucket: 'projfilestoragebucket' },
+    region: 'us-east-2',
 });
 
 const UploadS3Image = () => {
@@ -23,10 +24,21 @@ const UploadS3Image = () => {
     }
 
     const handleFileUpload = (file) => {
+        var fileType = "";
+
+        if (file.name.toLowerCase().includes('.pdf')) {
+            fileType = 'application/pdf';
+        }
+        else {
+            fileType = 'application';
+        }
+
         const params = {
             ACL: 'public-read',
             Body: file,
-            Bucket: process.env.S3_BUCKET,
+            Bucket: 'projfilestoragebucket',
+            ContentType: fileType,
+            ContentDisposition: 'inline',
             Key: file.name
         };
 
@@ -36,18 +48,26 @@ const UploadS3Image = () => {
         })
         .send((err) => {
             if (err) console.log(err)
+            window.location.reload(false);
         })
-    }
+        
+    };
 
 
     return (
-        <Container>
-            <Card>
-                <h4>File Upload Progress {progress}%</h4>
-                <input type="file" onChange={handleFileInput} />
-                <Button onClick={() => handleFileUpload(fileChosen)}>Upload File</Button>
-            </Card>
-        </Container>
+        <Card>
+            <Row>
+                <Col>
+                    <h4>File Upload Progress {progress}%</h4>
+                </Col>
+            </Row>
+            <Row>
+                <Col>
+                    <input type="file" onChange={handleFileInput} />
+                    <Button type="submit" onClick={() => handleFileUpload(fileChosen)}>Upload File</Button>
+                </Col>
+            </Row>   
+        </Card>
     );
 }
 
