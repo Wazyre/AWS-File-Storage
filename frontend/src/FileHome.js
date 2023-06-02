@@ -7,8 +7,8 @@ import Table from 'react-bootstrap/Table';
 import { BsFillCloudDownloadFill, BsFillEyeFill, BsFillTrash3Fill } from 'react-icons/bs';
 
 config.update({
-    accessKeyId: 'AKIAW2RXDVGG34XBTXHA',
-    secretAccessKey: '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',
+    accessKeyId: '',
+    secretAccessKey: '',
 });
 
 const theBucket = new AWS.S3({

@@ -6,8 +6,8 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
 config.update({
-    accessKeyId: 'AKIAW2RXDVGG34XBTXHA',
-    secretAccessKey: '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',
+    accessKeyId: '',
+    secretAccessKey: '',
 });
 
 const theBucket = new AWS.S3({
