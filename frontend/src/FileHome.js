@@ -19,14 +19,17 @@ const theBucket = new AWS.S3({
     region: 'us-east-2',
 });
 
+let currentVersions = {};
+
 const FileHome = () => {
     const [fileList, setFileList] = useState([]);
     const [viewUrl, setViewUrl] = useState("");
     const [fileType, setFileType] = useState("");
     const [allData, setAllData] = useState([]);
     const [number, setNumber] = useState(0);
+    const [urlChanged, setUrlChanged] = useState(false);
     const [allVersions, setAllVersions] = useState([]);
-    const [currentVersions, setCurrentVersions] = useState({}); // Stores current selected version of each file
+    //const [currentVersions, setCurrentVersions] = useState({}); // Stores current selected version of each file
 
     var theParams = {
         Bucket: 'projfilestoragebucket',
@@ -60,7 +63,7 @@ const FileHome = () => {
         
         setFileList(
             data.map((obj, idx) => {
-                if(obj.IsLatest) 
+                //if(obj.IsLatest) 
                 return <>
                 <tr key={idx}>
                     <td>{obj.Key}</td>
@@ -96,18 +99,18 @@ const FileHome = () => {
                     <td>
                         Versions: 
                         <Form.Select onChange={changeVersion}>
-                            {allVersions[idx][obj.Key].map((item, idx2) =>
-                                <option key={obj.Key + idx2} name={obj.Key} value={item.VersionId}>
+                            {console.log(idx)}
+                            {allVersions[idx].OtherVersions.map((item, idx2) =>
+                                <option key={item.Key + idx2} id={item.Key} value={item.VersionId}>
                                     {item.LastModified.toLocaleTimeString('en-US')
                                         + ', ' + item.LastModified.toLocaleDateString('en-US', options)}
                                 </option>
-                                
                             )}
                         </Form.Select>
                     </td>
                 </tr>
                 </>
-                return <></>
+                //return <></>
             })
         );
     };
@@ -119,26 +122,22 @@ const FileHome = () => {
         //     ...versions,
         //     ...updatedValue,
         // }));
-        setCurrentVersions({[e.target.name]: e.target.value});
+        let idx = e.target.selectedIndex;
+
+        console.log(e);
+        let copyObj = currentVersions;
+        currentVersions = { ...currentVersions, [e.target[idx].id]: e.target.value }
+        //setCurrentVersions(copyObj);
     };
 
     const downloadDocument = (key) => {
-        const urlExpire = 120;
 
         if (key in currentVersions) {
-            return theBucket.getSignedUrl('getObject', {
-                Bucket: 'projfilestoragebucket',
-                Key: key,
-                VersionId: currentVersions[key],
-                Expires: urlExpire
-            });
+            return 'https://projfilestoragebucket.s3.us-east-2.amazonaws.com/' + key + '?versionId=' + currentVersions[key];
         }
-
-        return theBucket.getSignedUrl('getObject', {
-            Bucket: 'projfilestoragebucket',
-            Key: key,
-            Expires: urlExpire
-        });
+        else {
+            return 'https://projfilestoragebucket.s3.us-east-2.amazonaws.com/' + key;
+        }
     };
 
     // const downloadVersionedDocument = (key, version) => {
@@ -153,40 +152,70 @@ const FileHome = () => {
     // };
 
     const viewDocument = (key) => {
-        const urlExpire = 120;
-        let signedUrl = '';
 
+        console.log(key);
+        console.log(currentVersions[key]);
+        console.log(Object.keys(currentVersions));
+        console.log(currentVersions);
+
+        let url = '';
         if (key in currentVersions) {
-            signedUrl = theBucket.getSignedUrl('getObject', {
-                Bucket: 'projfilestoragebucket',
-                Key: key,
-                ResponseContentEncoding: 'base64',
-                // ResponseContentType: 'application/pdf',
-                ResponseContentDisposition: 'inline',
-                VersionId: currentVersions[key],
-                Expires: urlExpire
-            });
+            url = 'https://projfilestoragebucket.s3.us-east-2.amazonaws.com/' + key + '?versionId=' + currentVersions[key];
         }
         else {
-            signedUrl = theBucket.getSignedUrl('getObject', {
-                Bucket: 'projfilestoragebucket',
-                Key: key,
-                ResponseContentEncoding: 'base64',
-                // ResponseContentType: 'application/pdf',
-                ResponseContentDisposition: 'inline',
-                Expires: urlExpire
-            });
+            url = 'https://projfilestoragebucket.s3.us-east-2.amazonaws.com/' + key;
         }
 
-        const url = signedUrl.split('?')[0];
         if (url.toLowerCase().includes(".pdf")) {
             setFileType("PDF");
         }
         else {
             setFileType("DOC");
         }
-
+        
         setViewUrl(url);
+        setUrlChanged(!urlChanged);
+
+        // const urlExpire = 120;
+        // let signedUrl = '';
+
+        
+        // if (key in currentVersions) {
+        //     signedUrl = theBucket.getSignedUrl('getObject', {
+        //         Bucket: 'projfilestoragebucket',
+        //         Key: key,
+        //         ResponseContentEncoding: 'base64',
+        //         // ResponseContentType: 'application/pdf',
+        //         ResponseContentDisposition: 'inline',
+        //         VersionId: currentVersions[key],
+        //         Expires: urlExpire
+        //     });
+        //     console.log('here');
+        // }
+        // else {
+        //     theBucket.getObject({
+        //         Bucket: 'projfilestoragebucket',
+        //         Key: key,
+        //         // ResponseContentEncoding: 'base64',
+        //         // ResponseContentType: 'application/pdf',
+        //         // ResponseContentDisposition: 'inline',
+        //         // Expires: urlExpire
+        //     }, function(err, data) {
+        //         console.log(data);
+        //     });
+            
+        // }
+
+        // const url = signedUrl.split('?')[0];
+        // if (url.toLowerCase().includes(".pdf")) {
+        //     setFileType("PDF");
+        // }
+        // else {
+        //     setFileType("DOC");
+        // }
+        
+        // setViewUrl(url);
+        // setUrlChanged(!urlChanged);
     };
 
     const deleteDocument = (key) => {
@@ -214,6 +243,15 @@ const FileHome = () => {
     };
 
     const getVersions = async() => {
+        theBucket.getObject({
+            Bucket: 'projfilestoragebucket',
+            Key: 'test.docx'}, function (err, data) {
+            if (err) console.log(err, err.stack);
+            else {
+                let temp = data.Body.toString('utf-8');
+                console.log(temp);
+            }
+        })
 
         const params = {
             Bucket: 'projfilestoragebucket',
@@ -238,18 +276,16 @@ const FileHome = () => {
 
         data.forEach(obj => {
             if (obj.IsLatest) {
-                versions = [...versions,
-                    { [obj.Key]: [obj] }
+                obj = {...obj, OtherVersions: [obj]};
+                versions = [
+                    ...versions,
+                    obj
                 ];
-                console.log({ [obj.Key]: [obj] });
             }
             else {
                 //let copy = [...allVersions];
-                let idx = versions.findIndex(item => Object.keys(item)[0] === obj.Key)
-                console.log(versions);
-                console.log(idx);
-                console.log(versions[idx]);
-                versions[idx][obj.Key] = [...versions[idx][obj.Key], obj];
+                let idx = versions.findIndex(item => item.Key === obj.Key)
+                versions[idx].OtherVersions = [...versions[idx].OtherVersions, obj];
                 //setAllVersions(copy);
                 
                 // setAllVersions(allVersions => [
@@ -270,17 +306,17 @@ const FileHome = () => {
         (async() => {
            await getVersions();
         })();
-    
-        
     }, []); // Reload app to render viewer
 
     useEffect(() => {
         console.log(viewUrl);
+        console.log(currentVersions);
     }, [viewUrl]);
 
     useEffect(() => {
-        listAllFiles(allData);
         console.log(allVersions);
+        listAllFiles(allVersions);
+        //console.log(allVersions[10])
     }, [allVersions]);
 
     // if (number < fileList.length) {
@@ -369,8 +405,8 @@ const FileHome = () => {
                 </Row>
             </Card>
             <Row/>
-            <iframe src={'https://view.officeapps.live.com/op/embed.aspx?src=' + viewUrl} title='DocViewer' width='700px' height='600px'>This is an embedded <a target='_blank' rel="noreferrer" href='http://office.com'>Microsoft Office</a> document, powered by <a target='_blank' rel="noreferrer" href='http://office.com/webapps'>Office Online</a>.</iframe>
-
+            {/* <iframe src={'https://view.officeapps.live.com/op/embed.aspx?src=' + viewUrl} title='DocViewer' width='700px' height='600px'/> */}
+                <iframe src={'https://docs.google.com/viewer?url=' + viewUrl + '&embedded=true'} title='DocViewer' width='700px' height='600px' />
             </div>
         );
     }
