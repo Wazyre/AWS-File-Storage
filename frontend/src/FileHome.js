@@ -33,18 +33,18 @@ const FileHome = () => {
         Delimiter: '/',
     };
 
-    const listAllFiles = async (allData) => {
+    const listAllFiles = async (data) => {
         //const allData = await getDocuments();
-        console.log(allData);
+        
 
-        for (const obj of allData) {
-            setAllVersions(allVersions => [
-                ...allVersions,
-                getVersions(obj.Key)
-            ])
-            console.log(obj);
-        }
-        console.log(allVersions);
+        // for (const obj of allData) {
+        //     setAllVersions(allVersions => [
+        //         ...allVersions,
+        //         getVersions(obj.Key)
+        //     ])
+        //     console.log(obj);
+        // }
+        // console.log(allVersions);
 
         // data.Contents.forEach(obj => {
         //     let tempArr = getVersions(obj.Key);
@@ -59,8 +59,9 @@ const FileHome = () => {
         const options = {year: 'numeric', month: 'long', day: 'numeric' };
         
         setFileList(
-            allData.map((obj, idx) =>
-                <>
+            data.map((obj, idx) => {
+                if(obj.IsLatest) 
+                return <>
                 <tr key={idx}>
                     <td>{obj.Key}</td>
                     <td>{Math.floor(obj.Size / 1000)} KB</td>
@@ -76,7 +77,7 @@ const FileHome = () => {
                         </a>
                     </td>
                 </tr>
-                    <tr key={idx}>
+                    <tr key={"View" + idx}>
                     <td>
                         <BsFillEyeFill
                             className='view'
@@ -90,21 +91,24 @@ const FileHome = () => {
                             onClick={function (e) { deleteDocument(obj.Key) }}
                         />
                     </td>
+                    </tr>
+                    <tr> 
                     <td>
                         Versions: 
                         <Form.Select onChange={changeVersion}>
-                            {allVersions[idx].map((item, idx2) =>
-                                <option key={idx2} name={obj.Key} value={item.VersionId}>
-                                        {item.LastModified.toLocaleTimeString('en-US')
-                                            + ', ' + item.LastModified.toLocaleDateString('en-US', options)}
-                                    </option>
+                            {allVersions[idx][obj.Key].map((item, idx2) =>
+                                <option key={obj.Key + idx2} name={obj.Key} value={item.VersionId}>
+                                    {item.LastModified.toLocaleTimeString('en-US')
+                                        + ', ' + item.LastModified.toLocaleDateString('en-US', options)}
+                                </option>
                                 
                             )}
                         </Form.Select>
                     </td>
                 </tr>
                 </>
-            )
+                return <></>
+            })
         );
     };
 
@@ -204,35 +208,80 @@ const FileHome = () => {
             }
             console.log(data.Contents)
             // return data.Contents;
-            listAllFiles(data.Contents);
+            getVersions(data.Contents);
+            //listAllFiles(data.Contents);
         });
     };
 
-    const getVersions = async(key) => {
+    const getVersions = async() => {
+
         const params = {
             Bucket: 'projfilestoragebucket',
-            Prefix: key
+            // Prefix: obj.Key
         };
 
-        // , function(err, data) {
-        //     if (err) console.log(err, err.stack);
-        //     else {
-        //         console.log(data.Versions);
-        //         setNumber(number + 1); // Keep track of which files received their versions so far
-        //         return data.Versions;
-        //     }
-        // }
-
-        return await theBucket.listObjectVersions(params).promise().Versions;
+        theBucket.listObjectVersions(params, function(err, data) {
+            if (err) console.log(err, err.stack);
+            else {
+                console.log(data.Versions);
+                // setNumber(number + 1); // Keep track of which files received their versions so far
+                return consolidateData(data.Versions);
+            }
+        })
     };
+
+    const consolidateData = (data) => {
+        console.log(data);
+        setAllData(data);
+
+        let versions = [];
+
+        data.forEach(obj => {
+            if (obj.IsLatest) {
+                versions = [...versions,
+                    { [obj.Key]: [obj] }
+                ];
+                console.log({ [obj.Key]: [obj] });
+            }
+            else {
+                //let copy = [...allVersions];
+                let idx = versions.findIndex(item => Object.keys(item)[0] === obj.Key)
+                console.log(versions);
+                console.log(idx);
+                console.log(versions[idx]);
+                versions[idx][obj.Key] = [...versions[idx][obj.Key], obj];
+                //setAllVersions(copy);
+                
+                // setAllVersions(allVersions => [
+                //     ...allVersions,
+                //     {
+                //         [obj.Key]: (allObjs => [
+                //             ...allObjs,
+                //             obj
+                //         ])
+                //     }
+                // ]);
+            }
+        })
+        setAllVersions(versions);
+    }
 
     useEffect(() => {
         (async() => {
-           await getDocuments();
+           await getVersions();
         })();
     
+        
+    }, []); // Reload app to render viewer
+
+    useEffect(() => {
         console.log(viewUrl);
-    }, [viewUrl]); // Reload app to render viewer
+    }, [viewUrl]);
+
+    useEffect(() => {
+        listAllFiles(allData);
+        console.log(allVersions);
+    }, [allVersions]);
 
     // if (number < fileList.length) {
     //     return <div></div>

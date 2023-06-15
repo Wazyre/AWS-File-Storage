@@ -17,17 +17,24 @@ import Row from 'react-bootstrap/Row';
 //   region: 'us-east-2',
 // });
 
-function App() {
-  return (
-    <Suspense fallback={<Loader size="big" />}>
-      <Container className='contentContainer'>
-        <FileHome/>
-        <Row/>
-        <UploadS3Image />
-        <Button href="https://login-file-storage.auth.us-east-2.amazoncognito.com">Click</Button>
-      </Container>
-    </Suspense>
-  );
+class App extends React.Component {
+  componentDidMount() {
+    this.props.hideLoader();
+  }
+
+  render () {
+    return (
+      <Suspense fallback={<Loader size="big" />}>
+        <Container className='contentContainer'>
+          <FileHome />
+          <Row />
+          <UploadS3Image />
+          <Button href="https://login-file-storage.auth.us-east-2.amazoncognito.com">Click</Button>
+        </Container>
+      </Suspense>
+    );
+  }
+  
 }
 
 export default App;
