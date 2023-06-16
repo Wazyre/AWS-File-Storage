@@ -1,9 +1,8 @@
 import {useState, useEffect} from 'react';
 import AWS, { config } from 'aws-sdk';
+import {callLambda} from './Lambda.js';
 import Col from 'react-bootstrap/Col';
 import Card from 'react-bootstrap/Card';
-import Dropdown from 'react-bootstrap/Dropdown';
-import DropdownButton from 'react-bootstrap/DropdownButton';
 import Form from 'react-bootstrap/Form';
 import Row from 'react-bootstrap/Row'; 
 import Table from 'react-bootstrap/Table';

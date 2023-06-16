@@ -4,12 +4,12 @@ frontend:
     # IMPORTANT - Please verify your build commands
     build:
       commands: 
-        - REACT_APP_BUCKET=${'projfilestoragebucket'}
-        - REACT_APP_REGION=${'us-east-2'}
-        - REACT_APP_ACCESS_KEY_ID = ${''} 
-        - REACT_APP_SECRET_ACCESS_KEY = ${''}
-        - REACT_APP_USER_POOL_ID = 'us-east-2_suxuWOj7d'
-        - REACT_APP_USER_POOL_CLIENT_ID = '7q64489h9c98pcl4e02f7vff49'
+        - REACT_APP_BUCKET=${'S3_BUCKET'}
+        - REACT_APP_REGION=${'REGION'}
+        - REACT_APP_ACCESS_KEY_ID = ${'ACCESS_KEY_ID'} 
+        - REACT_APP_SECRET_ACCESS_KEY = ${'SECRET_ACCESS_KEY'}
+        - REACT_APP_USER_POOL_ID = ''
+        - REACT_APP_USER_POOL_CLIENT_ID = ''
         - npm run build
       
   artifacts:
