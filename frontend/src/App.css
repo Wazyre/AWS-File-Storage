@@ -1,3 +1,8 @@
+*, html, body {
+  margin: 0;
+  padding: 0;
+}
+
 .contentContainer {
   width: inherit;
   min-width: 550px;
@@ -34,6 +39,17 @@
   max-width: 760px;
 }
 
+.contentContainer .table .col {
+  margin: 0px;
+  width: 100%;
+  max-width: 50px;
+}
+
+.contentContainer .table .row {
+  flex-direction: row;
+  display: flex;
+}
+
 .contentContainer .table {
   width: 90vw;
   font-size: 11pt;
@@ -42,10 +58,14 @@
   overflow-x: auto;
 }
 
-.contentContainer th{
+.contentContainer th {
   text-align: center;
   position: sticky;
   font-size: 12pt;
+}
+
+.contentContainer th {
+  width: auto;
 }
 
 .pointer {
@@ -76,5 +96,23 @@
 
 .view:hover:active,
 .view:focus {
+  color: #29948C;
+}
+
+.view a{
+  width: 20px;
+  height: 20px;
+  padding: 1px;
+  transition: color 0.4s;
+  cursor: pointer;
+  display: flex;
+}
+
+.view:hover a{
+  color: #42EADDFF;
+}
+
+.view:hover:active a,
+.view:focus a{
   color: #29948C;
 }

@@ -1,12 +1,15 @@
 import {useState, useEffect} from 'react';
 import AWS, { config } from 'aws-sdk';
 import {callLambda} from './Lambda.js';
+import ContentEditable from 'react-contenteditable';
+import sanitizeHtml from "sanitize-html"
+import Button from 'react-bootstrap/Button';
 import Col from 'react-bootstrap/Col';
 import Card from 'react-bootstrap/Card';
 import Form from 'react-bootstrap/Form';
 import Row from 'react-bootstrap/Row'; 
 import Table from 'react-bootstrap/Table';
-import { BsFillCloudDownloadFill, BsFillEyeFill, BsFillTrash3Fill } from 'react-icons/bs';
+import { BsFillCloudDownloadFill, BsFillEyeFill, BsPencilFill, BsFillTrash3Fill } from 'react-icons/bs';
 
 config.update({
     accessKeyId: '',
@@ -24,11 +27,11 @@ const FileHome = () => {
     const [fileList, setFileList] = useState([]);
     const [viewUrl, setViewUrl] = useState("");
     const [fileType, setFileType] = useState("");
-    const [allData, setAllData] = useState([]);
-    const [number, setNumber] = useState(0);
     const [urlChanged, setUrlChanged] = useState(false);
     const [allVersions, setAllVersions] = useState([]);
-    //const [currentVersions, setCurrentVersions] = useState({}); // Stores current selected version of each file
+    const [versionCount, setVersionCount] = useState(5);
+    const [editText, setEditText] = useState("");
+    const [keyEditing, setKeyEditing] = useState("");
 
     var theParams = {
         Bucket: 'projfilestoragebucket',
@@ -62,7 +65,10 @@ const FileHome = () => {
         
         setFileList(
             data.map((obj, idx) => {
-                //if(obj.IsLatest) 
+                let editable = '';
+                if (obj.Key.toLowerCase().includes(".txt")) {
+                    editable = <Col><BsPencilFill type='submit' className='view' onClick={function (e) { editDocument(obj.Key) }} /></Col>
+                }
                 return <>
                 <tr key={idx}>
                     <td>{obj.Key}</td>
@@ -71,45 +77,49 @@ const FileHome = () => {
                         + ', ' + obj.LastModified.toLocaleDateString('en-US', options)
                         }
                     </td>
-                    <td>
-                        <a href={downloadDocument(obj.Key)}>
-                            <BsFillCloudDownloadFill
-                                className='view'
-                            />
-                        </a>
-                    </td>
                 </tr>
-                    <tr key={"View" + idx}>
-                    <td>
-                        <BsFillEyeFill
-                            className='view'
-                            onClick={function(e) {viewDocument(obj.Key)}}
-                        />
-                    </td>
-                    <td>
-                        <BsFillTrash3Fill
-                            type='submit'
-                            className='view'
-                            onClick={function (e) { deleteDocument(obj.Key) }}
-                        />
-                    </td>
-                    </tr>
-                    <tr> 
+                <tr key={"View" + idx}>
+                    <Row>
+                        <Col>
+                            <a href={downloadDocument(obj.Key)} className='view'>
+                                <BsFillCloudDownloadFill
+                                    
+                                />
+                            </a>
+                        </Col>
+                        <Col>
+                            <BsFillEyeFill
+                                type='submit'
+                                className='view'
+                                onClick={function(e) {viewDocument(obj.Key)}}
+                            />
+                        </Col>
+                        {editable}
+                        <Col>
+                            <BsFillTrash3Fill
+                                type='submit'
+                                className='view'
+                                onClick={function (e) { deleteDocument(obj.Key) }}
+                            />
+                        </Col>
+                    </Row>
+                </tr>
+                <tr> 
                     <td>
                         Versions: 
                         <Form.Select onChange={changeVersion}>
-                            {console.log(idx)}
-                            {allVersions[idx].OtherVersions.map((item, idx2) =>
-                                <option key={item.Key + idx2} id={item.Key} value={item.VersionId}>
+                            {allVersions[idx].OtherVersions.map((item, idx2) => {
+                                if (versionCount <= idx2) 
+                                return;
+                                return <option key={item.Key + idx2} id={item.Key} value={item.VersionId}>
                                     {item.LastModified.toLocaleTimeString('en-US')
                                         + ', ' + item.LastModified.toLocaleDateString('en-US', options)}
                                 </option>
-                            )}
+                            })}
                         </Form.Select>
                     </td>
                 </tr>
                 </>
-                //return <></>
             })
         );
     };
@@ -122,11 +132,7 @@ const FileHome = () => {
         //     ...updatedValue,
         // }));
         let idx = e.target.selectedIndex;
-
-        console.log(e);
-        let copyObj = currentVersions;
         currentVersions = { ...currentVersions, [e.target[idx].id]: e.target.value }
-        //setCurrentVersions(copyObj);
     };
 
     const downloadDocument = (key) => {
@@ -138,17 +144,6 @@ const FileHome = () => {
             return 'https://projfilestoragebucket.s3.us-east-2.amazonaws.com/' + key;
         }
     };
-
-    // const downloadVersionedDocument = (key, version) => {
-    //     const urlExpire = 120;
-
-    //     return theBucket.getSignedUrl('getObject', {
-    //         Bucket: 'projfilestoragebucket',
-    //         Key: key,
-    //         Version: version,
-    //         Expires: urlExpire
-    //     })
-    // };
 
     const viewDocument = (key) => {
 
@@ -217,6 +212,24 @@ const FileHome = () => {
         // setUrlChanged(!urlChanged);
     };
 
+    const editDocument = (key) => {
+        const params = {
+            Bucket: 'projfilestoragebucket',
+            Key: key
+        };
+
+        theBucket.getObject(params, function (err, data) {
+            if (err) {
+                console.log(err, err.stack);
+            } 
+            else {
+                let text = data.Body.toString('utf-8');
+                setEditText(text);
+                setKeyEditing(key);
+            }
+        })
+    }
+
     const deleteDocument = (key) => {
         const params = {
             Bucket: 'projfilestoragebucket',
@@ -234,23 +247,20 @@ const FileHome = () => {
                 console.log(err);
                 return;
             }
-            console.log(data.Contents)
-            // return data.Contents;
             getVersions(data.Contents);
-            //listAllFiles(data.Contents);
         });
     };
 
     const getVersions = async() => {
-        theBucket.getObject({
-            Bucket: 'projfilestoragebucket',
-            Key: 'test.docx'}, function (err, data) {
-            if (err) console.log(err, err.stack);
-            else {
-                let temp = data.Body.toString('utf-8');
-                console.log(temp);
-            }
-        })
+        // theBucket.getObject({
+        //     Bucket: 'projfilestoragebucket',
+        //     Key: 'test.docx'}, function (err, data) {
+        //     if (err) console.log(err, err.stack);
+        //     else {
+        //         let temp = data.Body.toString('utf-8');
+        //         console.log(temp);
+        //     }
+        // })
 
         const params = {
             Bucket: 'projfilestoragebucket',
@@ -260,16 +270,13 @@ const FileHome = () => {
         theBucket.listObjectVersions(params, function(err, data) {
             if (err) console.log(err, err.stack);
             else {
-                console.log(data.Versions);
-                // setNumber(number + 1); // Keep track of which files received their versions so far
                 return consolidateData(data.Versions);
             }
         })
     };
 
     const consolidateData = (data) => {
-        console.log(data);
-        setAllData(data);
+        // setAllData(data);
 
         let versions = [];
 
@@ -299,7 +306,27 @@ const FileHome = () => {
             }
         })
         setAllVersions(versions);
-    }
+    };
+
+    const handleVersionCount = (e) => {
+        setVersionCount(e.target.value);
+    };
+
+    const handleEditChange = (e) => {
+        // const sanitizeConf = {
+        //     allowedTags: ['i', 'em', 'strong', 'a'],
+        //     allowedAttributes: { a: ["href"] }
+        // };
+
+        setEditText(sanitizeHtml(e.target.innerHTML));
+    };
+
+    const handleEditSubmit = (e) => {
+        const params = {
+            Bucket: 'projfilestoragebucket',
+            Key: keyEditing
+        };
+    };
 
     useEffect(() => {
         (async() => {
@@ -310,13 +337,13 @@ const FileHome = () => {
     useEffect(() => {
         console.log(viewUrl);
         console.log(currentVersions);
-    }, [viewUrl]);
+    }, [viewUrl, keyEditing]);
 
     useEffect(() => {
         console.log(allVersions);
         listAllFiles(allVersions);
         //console.log(allVersions[10])
-    }, [allVersions]);
+    }, [allVersions, versionCount]);
 
     // if (number < fileList.length) {
     //     return <div></div>
@@ -324,24 +351,44 @@ const FileHome = () => {
 
     if (viewUrl === "") {
         return (
-            <Card>
+            <div>
+                <Card>
+                    <Row>
+                        <Col>
+                            <Table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Size</th>
+                                        <th>Last Modified</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {fileList}
+                                </tbody>
+                            </Table>
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col>
+                            <Form.Group controlId="versionControlId">
+                                <Form.Label>Version Count</Form.Label>
+                                <Form.Control value={versionCount} type="number" placeholder={5} onChange={handleVersionCount} />
+                            </Form.Group>
+                        </Col>
+                    </Row>
+                </Card>
                 <Row>
                     <Col>
-                        <Table>
-                            <thead>
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Size</th>
-                                    <th>Last Modified</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {fileList}
-                            </tbody>
-                        </Table>
+                        <ContentEditable onChange={handleEditChange} html={editText}/>
                     </Col>
                 </Row>
-            </Card>
+                <Row>
+                    <Col>
+                        <Button onClick={handleEditSubmit}>Upload Edit</Button>
+                    </Col>
+                </Row>
+            </div>
         );
     }
     else if (fileType === "PDF"){
@@ -366,7 +413,10 @@ const FileHome = () => {
                 </Row>
                 <Row>
                     <Col>
-                        
+                        <Form.Group controlId="versionControlId">
+                            <Form.Label>Version Count</Form.Label>
+                            <Form.Control value={versionCount} type="number" placeholder={5} onChange={handleVersionCount} />
+                        </Form.Group>
                     </Col>
                 </Row>
             </Card>
@@ -399,7 +449,10 @@ const FileHome = () => {
                 </Row>
                 <Row>
                     <Col>
-                        
+                        <Form.Group controlId="versionControlId">
+                            <Form.Label>Version Count</Form.Label>
+                            <Form.Control value={versionCount} type="number" placeholder={5} onChange={handleVersionCount}/>
+                        </Form.Group>
                     </Col>
                 </Row>
             </Card>
