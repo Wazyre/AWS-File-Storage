@@ -6,15 +6,6 @@ import Loader from './Loader'
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 
-// config.update({
-// 	accessKeyId: '',
-// 	secretAccessKey: '',
-// });
-
-// const theBucket = new AWS.S3({
-// 	region: 'us-east-2',
-// });
-
 class App extends React.Component {
 	componentDidMount() {
 		this.props.hideLoader();

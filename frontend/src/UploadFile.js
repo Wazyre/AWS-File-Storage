@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import AWS, {config} from 'aws-sdk';
 import Button from 'react-bootstrap/Button';
 import Card from 'react-bootstrap/Card';

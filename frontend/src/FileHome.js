@@ -1,6 +1,5 @@
 import {useState, useEffect} from 'react';
 import AWS, { config } from 'aws-sdk';
-import {callLambda} from './Lambda.js';
 import { uploadWithContent } from './UploadFile.js'
 import ContentEditable from 'react-contenteditable';
 import sanitizeHtml from "sanitize-html"
