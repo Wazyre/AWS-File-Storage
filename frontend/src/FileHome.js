@@ -22,7 +22,7 @@ const theBucket = new AWS.S3({
     region: process.env.REACT_APP_REGION,
 });
 
-//const socketConn = new WebSocket('wss://qxyg3h2vwh.execute-api.us-east-1.amazonaws.com/production' || '');
+const socketConn = new WebSocket('wss://qxyg3h2vwh.execute-api.us-east-1.amazonaws.com/production' || '');
 
 let currentVersions = {};
 
@@ -39,26 +39,26 @@ const FileHome = () => {
     const [syncText, setSyncText] = useState("Close First then Sync");
     const [syncReady, setSyncReady] = useState(false);
 
-    // socketConn.addEventListener('open', (e) => {
-    //     console.log('WebSocket is connected');
-    // });
+    socketConn.addEventListener('open', (e) => {
+        console.log('WebSocket is connected');
+    });
 
-    // socketConn.addEventListener('open', (e) => {
-    //     console.log('WebSocket is connected');
-    // });
+    socketConn.addEventListener('open', (e) => {
+        console.log('WebSocket is connected');
+    });
 
-    // socketConn.addEventListener('close', (e) => {
-    //     console.log('WebSocket Connection is closed')
-    // });
+    socketConn.addEventListener('close', (e) => {
+        console.log('WebSocket Connection is closed')
+    });
 
-    // socketConn.addEventListener('error', (e) => {
-    //     console.error('WebSocket Connection is in error', e)
-    // });
+    socketConn.addEventListener('error', (e) => {
+        console.error('WebSocket Connection is in error', e)
+    });
 
-    // socketConn.addEventListener('message', (e) => {
-    //     console.log(JSON.parse(e.data).message);
-    //     setSyncReady(true);
-    // });
+    socketConn.addEventListener('message', (e) => {
+        console.log(JSON.parse(e.data).message);
+        setSyncReady(true);
+    });
 
     var theParams = {
         Bucket: process.env.REACT_APP_BUCKET,
@@ -66,27 +66,6 @@ const FileHome = () => {
     };
 
     const listAllFiles = async (data) => {
-        //const allData = await getDocuments();
-        
-
-        // for (const obj of allData) {
-        //     setAllVersions(allVersions => [
-        //         ...allVersions,
-        //         getVersions(obj.Key)
-        //     ])
-        //     console.log(obj);
-        // }
-        // console.log(allVersions);
-
-        // data.Contents.forEach(obj => {
-        //     let tempArr = getVersions(obj.Key);
-        //     setAllVersions(allVersions => [
-        //         ...allVersions,
-        //         tempArr
-        //     ]);
-        //     console.log(obj);
-        // })
-        // console.log(allVersions);
 
         const options = {year: 'numeric', month: 'long', day: 'numeric' };
         
@@ -157,12 +136,6 @@ const FileHome = () => {
             setSyncReady(false);
         }
 
-        // let key = e.target.name;
-        // let updatedValue = {key: e.target.value};
-        // setVersions(versions => ({
-        //     ...versions,
-        //     ...updatedValue,
-        // }));
         let idx = e.target.selectedIndex;
         currentVersions = { ...currentVersions, [e.target[idx].id]: e.target.value }
     };
@@ -209,47 +182,6 @@ const FileHome = () => {
         
         setViewUrl(url);
         setUrlChanged(!urlChanged);
-
-        // const urlExpire = 120;
-        // let signedUrl = '';
-
-        
-        // if (key in currentVersions) {
-        //     signedUrl = theBucket.getSignedUrl('getObject', {
-        //         Bucket: 'projfilestoragebucket',
-        //         Key: key,
-        //         ResponseContentEncoding: 'base64',
-        //         // ResponseContentType: 'application/pdf',
-        //         ResponseContentDisposition: 'inline',
-        //         VersionId: currentVersions[key],
-        //         Expires: urlExpire
-        //     });
-        //     console.log('here');
-        // }
-        // else {
-        //     theBucket.getObject({
-        //         Bucket: 'projfilestoragebucket',
-        //         Key: key,
-        //         // ResponseContentEncoding: 'base64',
-        //         // ResponseContentType: 'application/pdf',
-        //         // ResponseContentDisposition: 'inline',
-        //         // Expires: urlExpire
-        //     }, function(err, data) {
-        //         console.log(data);
-        //     });
-            
-        // }
-
-        // const url = signedUrl.split('?')[0];
-        // if (url.toLowerCase().includes(".pdf")) {
-        //     setFileType("PDF");
-        // }
-        // else {
-        //     setFileType("DOC");
-        // }
-        
-        // setViewUrl(url);
-        // setUrlChanged(!urlChanged);
     };
 
     const editDocument = (key) => {
@@ -325,17 +257,6 @@ const FileHome = () => {
             else {
                 let idx = versions.findIndex(item => item.Key === obj.Key)
                 versions[idx].OtherVersions = [...versions[idx].OtherVersions, obj];
-                //setAllVersions(copy);
-                
-                // setAllVersions(allVersions => [
-                //     ...allVersions,
-                //     {
-                //         [obj.Key]: (allObjs => [
-                //             ...allObjs,
-                //             obj
-                //         ])
-                //     }
-                // ]);
             }
         })
         setAllVersions(versions);
