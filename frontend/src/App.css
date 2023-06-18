@@ -72,6 +72,11 @@
   cursor: pointer;
 }
 
+.editable {
+  width: 75%;
+  min-height: 100px;
+}
+
 .edit,
 .view {
   width: 20px;

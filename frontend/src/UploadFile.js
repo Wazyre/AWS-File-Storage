@@ -6,18 +6,42 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 
 config.update({
-    accessKeyId: '',
-    secretAccessKey: '',
+    accessKeyId: process.env.REACT_APP_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.REACT_APP_SECRET_ACCESS_KEY || '',
 });
 
 const theBucket = new AWS.S3({
-    params: { Bucket: 'projfilestoragebucket' },
-    region: 'us-east-2',
+    params: { Bucket: process.env.REACT_APP_BUCKET },
+    region: process.env.REACT_APP_REGION,
 });
 
-const UploadS3Image = () => {
-    const [fileChosen, setFileChosen] = useState(null);
+export const uploadWithContent = (key, content) => {
+
+    const params = {
+        ACL: 'public-read',
+        Body: content,
+        Bucket: process.env.REACT_APP_BUCKET,
+        ContentType: 'application',
+        ContentDisposition: 'inline',
+        Key: key
+    };
+
+    theBucket.putObject(params)
+        .on('httpdUploadProgress', (evt) => {
+            
+        })
+        .send((err) => {
+            if (err) console.log(err)
+            window.location.reload(false);
+        })
+};
+
+
+const UploadFile = () => {
+    const [fileChosen, setFileChosen] = useState("");
     const [progress, setProgress] = useState(0);
+
+    
 
     const handleFileInput = (e) => {
         setFileChosen(e.target.files[0]);
@@ -36,7 +60,7 @@ const UploadS3Image = () => {
         const params = {
             ACL: 'public-read',
             Body: file,
-            Bucket: 'projfilestoragebucket',
+            Bucket: process.env.REACT_APP_BUCKET,
             ContentType: fileType,
             ContentDisposition: 'inline',
             Key: file.name
@@ -64,11 +88,11 @@ const UploadS3Image = () => {
             <Row>
                 <Col>
                     <input type="file" onChange={handleFileInput} />
-                    <Button type="submit" onClick={() => handleFileUpload(fileChosen)}>Upload File</Button>
+                    <Button disabled={fileChosen === ""} type="submit" onClick={() => handleFileUpload(fileChosen)}>Upload File</Button>
                 </Col>
             </Row>   
         </Card>
     );
 }
 
-export default UploadS3Image;
+export default UploadFile;

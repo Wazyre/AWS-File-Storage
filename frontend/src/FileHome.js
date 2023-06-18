@@ -1,6 +1,7 @@
 import {useState, useEffect} from 'react';
 import AWS, { config } from 'aws-sdk';
 import {callLambda} from './Lambda.js';
+import { uploadWithContent } from './UploadFile.js'
 import ContentEditable from 'react-contenteditable';
 import sanitizeHtml from "sanitize-html"
 import Button from 'react-bootstrap/Button';
@@ -12,14 +13,16 @@ import Table from 'react-bootstrap/Table';
 import { BsFillCloudDownloadFill, BsFillEyeFill, BsPencilFill, BsFillTrash3Fill } from 'react-icons/bs';
 
 config.update({
-    accessKeyId: '',
-    secretAccessKey: '',
+    accessKeyId: process.env.REACT_APP_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.REACT_APP_SECRET_ACCESS_KEY || '',
 });
 
 const theBucket = new AWS.S3({
-    params: { Bucket: 'projfilestoragebucket' },
-    region: 'us-east-2',
+    params: { Bucket: process.env.REACT_APP_BUCKET },
+    region: process.env.REACT_APP_REGION,
 });
+
+//const socketConn = new WebSocket('wss://qxyg3h2vwh.execute-api.us-east-1.amazonaws.com/production' || '');
 
 let currentVersions = {};
 
@@ -32,9 +35,33 @@ const FileHome = () => {
     const [versionCount, setVersionCount] = useState(5);
     const [editText, setEditText] = useState("");
     const [keyEditing, setKeyEditing] = useState("");
+    const [syncPolicy, setSyncPolicy] = useState("closeSync");
+    const [syncText, setSyncText] = useState("Close First then Sync");
+    const [syncReady, setSyncReady] = useState(false);
+
+    // socketConn.addEventListener('open', (e) => {
+    //     console.log('WebSocket is connected');
+    // });
+
+    // socketConn.addEventListener('open', (e) => {
+    //     console.log('WebSocket is connected');
+    // });
+
+    // socketConn.addEventListener('close', (e) => {
+    //     console.log('WebSocket Connection is closed')
+    // });
+
+    // socketConn.addEventListener('error', (e) => {
+    //     console.error('WebSocket Connection is in error', e)
+    // });
+
+    // socketConn.addEventListener('message', (e) => {
+    //     console.log(JSON.parse(e.data).message);
+    //     setSyncReady(true);
+    // });
 
     var theParams = {
-        Bucket: 'projfilestoragebucket',
+        Bucket: process.env.REACT_APP_BUCKET,
         Delimiter: '/',
     };
 
@@ -125,6 +152,11 @@ const FileHome = () => {
     };
 
     const changeVersion = (e) => {
+        if (syncReady) {
+            getVersions();
+            setSyncReady(false);
+        }
+
         // let key = e.target.name;
         // let updatedValue = {key: e.target.value};
         // setVersions(versions => ({
@@ -136,17 +168,25 @@ const FileHome = () => {
     };
 
     const downloadDocument = (key) => {
+        if (syncReady) {
+            getVersions();
+            setSyncReady(false);
+        }
 
         if (key in currentVersions) {
-            return 'https://projfilestoragebucket.s3.us-east-2.amazonaws.com/' + key + '?versionId=' + currentVersions[key];
+            return 'https://' + process.env.REACT_APP_BUCKET + '.s3.us-east-2.amazonaws.com/' + key + '?versionId=' + currentVersions[key];
         }
         else {
-            return 'https://projfilestoragebucket.s3.us-east-2.amazonaws.com/' + key;
+            return 'https://' + process.env.REACT_APP_BUCKET + '.s3.us-east-2.amazonaws.com/' + key;
         }
     };
 
     const viewDocument = (key) => {
-
+        if (syncReady) {
+            getVersions();
+            setSyncReady(false);
+        }
+        
         console.log(key);
         console.log(currentVersions[key]);
         console.log(Object.keys(currentVersions));
@@ -154,10 +194,10 @@ const FileHome = () => {
 
         let url = '';
         if (key in currentVersions) {
-            url = 'https://projfilestoragebucket.s3.us-east-2.amazonaws.com/' + key + '?versionId=' + currentVersions[key];
+            url = 'https://' + process.env.REACT_APP_BUCKET + '.s3.us-east-2.amazonaws.com/' + key + '?versionId=' + currentVersions[key];
         }
         else {
-            url = 'https://projfilestoragebucket.s3.us-east-2.amazonaws.com/' + key;
+            url = 'https://' + process.env.REACT_APP_BUCKET + '.s3.us-east-2.amazonaws.com/' + key;
         }
 
         if (url.toLowerCase().includes(".pdf")) {
@@ -214,7 +254,7 @@ const FileHome = () => {
 
     const editDocument = (key) => {
         const params = {
-            Bucket: 'projfilestoragebucket',
+            Bucket: process.env.REACT_APP_BUCKET,
             Key: key
         };
 
@@ -231,8 +271,13 @@ const FileHome = () => {
     }
 
     const deleteDocument = (key) => {
+        if (syncReady) {
+            getVersions();
+            setSyncReady(false);
+        }
+
         const params = {
-            Bucket: 'projfilestoragebucket',
+            Bucket: process.env.REACT_APP_BUCKET,
             Key: key
         };
 
@@ -252,18 +297,9 @@ const FileHome = () => {
     };
 
     const getVersions = async() => {
-        // theBucket.getObject({
-        //     Bucket: 'projfilestoragebucket',
-        //     Key: 'test.docx'}, function (err, data) {
-        //     if (err) console.log(err, err.stack);
-        //     else {
-        //         let temp = data.Body.toString('utf-8');
-        //         console.log(temp);
-        //     }
-        // })
 
         const params = {
-            Bucket: 'projfilestoragebucket',
+            Bucket: process.env.REACT_APP_BUCKET,
             // Prefix: obj.Key
         };
 
@@ -276,8 +312,6 @@ const FileHome = () => {
     };
 
     const consolidateData = (data) => {
-        // setAllData(data);
-
         let versions = [];
 
         data.forEach(obj => {
@@ -289,7 +323,6 @@ const FileHome = () => {
                 ];
             }
             else {
-                //let copy = [...allVersions];
                 let idx = versions.findIndex(item => item.Key === obj.Key)
                 versions[idx].OtherVersions = [...versions[idx].OtherVersions, obj];
                 //setAllVersions(copy);
@@ -313,41 +346,47 @@ const FileHome = () => {
     };
 
     const handleEditChange = (e) => {
-        // const sanitizeConf = {
-        //     allowedTags: ['i', 'em', 'strong', 'a'],
-        //     allowedAttributes: { a: ["href"] }
-        // };
-
-        setEditText(sanitizeHtml(e.target.innerHTML));
+        setEditText(e.target.value);
     };
 
-    const handleEditSubmit = (e) => {
-        const params = {
-            Bucket: 'projfilestoragebucket',
-            Key: keyEditing
+    const handleEditSubmit = () => {
+        const sanitizeConf = {
+            allowedTags: ['i', 'em', 'strong', 'a'],
+            allowedAttributes: { a: ["href"] }
         };
+
+        uploadWithContent(keyEditing, sanitizeHtml(editText, sanitizeConf));
+        setKeyEditing("");
+        setEditText("");
+    };
+
+    const handleSyncToggle = (e) => {
+        if (e.target.checked) {
+            setSyncPolicy("forceSync");
+            setSyncText("Force Sync");
+        }
+        else {
+            setSyncPolicy("closeSync");
+            setSyncText("Close First then Sync");
+        }
     };
 
     useEffect(() => {
         (async() => {
            await getVersions();
         })();
-    }, []); // Reload app to render viewer
+    }, []); 
 
     useEffect(() => {
         console.log(viewUrl);
         console.log(currentVersions);
-    }, [viewUrl, keyEditing]);
+    }, [viewUrl, keyEditing]); // Reload app to render viewer/editor
 
     useEffect(() => {
         console.log(allVersions);
         listAllFiles(allVersions);
-        //console.log(allVersions[10])
     }, [allVersions, versionCount]);
 
-    // if (number < fileList.length) {
-    //     return <div></div>
-    // }
 
     if (viewUrl === "") {
         return (
@@ -376,16 +415,24 @@ const FileHome = () => {
                                 <Form.Control value={versionCount} type="number" placeholder={5} onChange={handleVersionCount} />
                             </Form.Group>
                         </Col>
+                        <Col>
+                            <Form.Label> Sync Policy </Form.Label>
+                            <Form.Switch
+                                id="syncSwitch"
+                                label={syncText}
+                                onChange={handleSyncToggle}
+                            />
+                        </Col>
                     </Row>
                 </Card>
                 <Row>
                     <Col>
-                        <ContentEditable onChange={handleEditChange} html={editText}/>
+                        <ContentEditable className="editable" onChange={handleEditChange} html={editText}/>
                     </Col>
                 </Row>
                 <Row>
                     <Col>
-                        <Button onClick={handleEditSubmit}>Upload Edit</Button>
+                        <Button disabled={editText === ""} onClick={handleEditSubmit}>Upload Edit</Button>
                     </Col>
                 </Row>
             </div>
